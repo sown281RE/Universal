@@ -1,0 +1,310 @@
+--// This file was created by XHider https://discord.com/invite/E2N7w35zkt
+
+local x = game:GetService("Players");
+local S = game:GetService("UserInputService");
+local L = game:GetService("TweenService");
+local r = x.LocalPlayer;
+local e = r:WaitForChild("PlayerGui");
+local z = S.TouchEnabled and not S.KeyboardEnabled;
+local k = Instance.new("ScreenGui");
+k.Name = "AutoSearchUI";
+k.ResetOnSpawn = false;
+k.Parent = e;
+local I = z and 280 or 320;
+local G = z and 300 or 280;
+local n = z and 44 or 32;
+local Z = z and Enum.FontSize.Size18 or Enum.FontSize.Size14;
+local w = Instance.new("Frame");
+w.Name = "SearchFrame";
+w.Size = UDim2.new(0, I, 0, G);
+w.Position = UDim2.new(.5, -I / 2, 0, 100);
+w.BackgroundColor3 = Color3.fromRGB(25, 25, 30);
+w.BorderSizePixel = 0;
+w.Active = true;
+w.Parent = k;
+local P = Instance.new("UICorner", w);
+P.CornerRadius = UDim.new(0, 12);
+local j = Instance.new("UIStroke", w);
+j.Color = Color3.fromRGB(80, 80, 120);
+j.Thickness = 1.5;
+local M = Instance.new("Frame");
+M.Name = "TitleBar";
+M.Size = UDim2.new(1, 0, 0, 36);
+M.BackgroundColor3 = Color3.fromRGB(40, 40, 55);
+M.BorderSizePixel = 0;
+M.Parent = w;
+local R = Instance.new("UICorner", M);
+R.CornerRadius = UDim.new(0, 12);
+local b = Instance.new("Frame", M);
+b.Size = UDim2.new(1, 0, 0, 12);
+b.Position = UDim2.new(0, 0, 1, -12);
+b.BackgroundColor3 = Color3.fromRGB(40, 40, 55);
+b.BorderSizePixel = 0;
+local D = Instance.new("TextLabel");
+D.Size = UDim2.new(1, -70, 1, 0);
+D.Position = UDim2.new(0, 12, 0, 0);
+D.BackgroundTransparency = 1;
+D.Text = "Search UI";
+D.TextColor3 = Color3.fromRGB(220, 220, 255);
+D.TextXAlignment = Enum.TextXAlignment.Left;
+D.Font = Enum.Font.GothamBold;
+D.TextSize = 14;
+D.Parent = M;
+local d = false;
+local h, u;
+local function f(x)
+	d = true;
+	h = x;
+	u = w.Position;
+end;
+local function i(x)
+	if not d then
+		return;
+	end;
+	local S = x - h;
+	w.Position = UDim2.new(u.X.Scale, u.X.Offset + S.X, u.Y.Scale, u.Y.Offset + S.Y);
+end;
+local function U()
+	d = false;
+end;
+M.InputBegan:Connect(function(x)
+	if x.UserInputType == Enum.UserInputType.MouseButton1 or x.UserInputType == Enum.UserInputType.Touch then
+		f(x.Position);
+	end;
+end);
+M.InputEnded:Connect(function(x)
+	if x.UserInputType == Enum.UserInputType.MouseButton1 or x.UserInputType == Enum.UserInputType.Touch then
+		U();
+	end;
+end);
+S.InputChanged:Connect(function(x)
+	if x.UserInputType == Enum.UserInputType.MouseMovement or x.UserInputType == Enum.UserInputType.Touch then
+		i(x.Position);
+	end;
+end);
+local function y(x, S, L)
+	local r = Instance.new("TextButton");
+	r.Size = UDim2.new(0, 28, 0, 28);
+	r.Position = UDim2.new(1, S, 0, 4);
+	r.Text = x;
+	r.BackgroundColor3 = L;
+	r.TextColor3 = Color3.fromRGB(255, 255, 255);
+	r.Font = Enum.Font.GothamBold;
+	r.TextSize = 16;
+	r.Parent = M;
+	(Instance.new("UICorner", r)).CornerRadius = UDim.new(0, 6);
+	return r;
+end;
+local c = y("\195\151", -32, Color3.fromRGB(180, 60, 60));
+local X = y("\226\136\146", -64, Color3.fromRGB(100, 100, 120));
+c.MouseButton1Click:Connect(function()
+	k:Destroy();
+end);
+local E = Instance.new("Frame");
+E.Name = "Content";
+E.Size = UDim2.new(1, -20, 1, -46);
+E.Position = UDim2.new(0, 10, 0, 40);
+E.BackgroundTransparency = 1;
+E.Parent = w;
+local K = Instance.new("TextBox");
+K.Size = UDim2.new(1, 0, 0, n);
+K.Position = UDim2.new(0, 0, 0, 0);
+K.PlaceholderText = "Nh\225\186\173p text c\225\186\167n t\195\172m...";
+K.Text = "";
+K.BackgroundColor3 = Color3.fromRGB(50, 50, 60);
+K.TextColor3 = Color3.fromRGB(255, 255, 255);
+K.PlaceholderColor3 = Color3.fromRGB(150, 150, 160);
+K.Font = Enum.Font.Gotham;
+K.TextSize = z and 16 or 14;
+K.ClearTextOnFocus = false;
+K.Parent = E;
+(Instance.new("UICorner", K)).CornerRadius = UDim.new(0, 8);
+(Instance.new("UIStroke", K)).Color = Color3.fromRGB(70, 70, 90);
+local T = Instance.new("TextButton");
+T.Size = UDim2.new(1, 0, 0, n);
+T.Position = UDim2.new(0, 0, 0, n + 8);
+T.Text = "search";
+T.BackgroundColor3 = Color3.fromRGB(70, 100, 180);
+T.TextColor3 = Color3.fromRGB(255, 255, 255);
+T.Font = Enum.Font.GothamBold;
+T.TextSize = z and 16 or 14;
+T.Parent = E;
+(Instance.new("UICorner", T)).CornerRadius = UDim.new(0, 8);
+local g = Instance.new("ScrollingFrame");
+g.Name = "Results";
+g.Size = UDim2.new(1, 0, 1, -(n * 2 + 24));
+g.Position = UDim2.new(0, 0, 0, n * 2 + 20);
+g.CanvasSize = UDim2.new(0, 0, 0, 0);
+g.ScrollBarThickness = 4;
+g.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150);
+g.BackgroundColor3 = Color3.fromRGB(35, 35, 45);
+g.BorderSizePixel = 0;
+g.Parent = E;
+(Instance.new("UICorner", g)).CornerRadius = UDim.new(0, 8);
+local v = Instance.new("UIPadding", g);
+v.PaddingLeft = UDim.new(0, 6);
+v.PaddingRight = UDim.new(0, 6);
+v.PaddingTop = UDim.new(0, 6);
+local a = Instance.new("UIListLayout", g);
+a.Padding = UDim.new(0, 6);
+local N = Instance.new("TextLabel");
+N.Size = UDim2.new(1, 0, 0, 30);
+N.BackgroundTransparency = 1;
+N.Text = "Nh\225\186\173p text v\195\160 nh\225\186\165n T\195\172m ki\225\186\191m";
+N.TextColor3 = Color3.fromRGB(150, 150, 160);
+N.Font = Enum.Font.Gotham;
+N.TextSize = 12;
+N.Parent = g;
+local F;
+local function l(x)
+	local S = {};
+	local L = x;
+	while L and L ~= game do
+		table.insert(S, 1, L.Name);
+		L = L.Parent;
+	end;
+	return "game." .. table.concat(S, ".");
+end;
+local function O(x)
+	if F then
+		F:Destroy();
+	end;
+	local S = Instance.new("Highlight");
+	S.FillTransparency = .6;
+	S.OutlineColor = Color3.fromRGB(255, 200, 0);
+	S.FillColor = Color3.fromRGB(255, 255, 100);
+	S.OutlineTransparency = 0;
+	S.Adornee = x;
+	S.Parent = x;
+	F = S;
+end;
+local function m(x)
+	local S = {};
+	x = x:lower();
+	for L, r in ipairs(game:GetDescendants()) do
+		pcall(function()
+			if (r:IsA("TextLabel") or r:IsA("TextButton") or r:IsA("TextBox")) and r.Text then
+				if (r.Text:lower()):find(x, 1, true) then
+					table.insert(S, r);
+				end;
+			end;
+		end);
+	end;
+	return S;
+end;
+local function s()
+	for x, S in ipairs(g:GetChildren()) do
+		if S:IsA("Frame") then
+			S:Destroy();
+		end;
+	end;
+end;
+local function p(x, S)
+	local L = z and 60 or 48;
+	local r = Instance.new("Frame");
+	r.Size = UDim2.new(1, -12, 0, L);
+	r.BackgroundColor3 = Color3.fromRGB(50, 50, 65);
+	r.BorderSizePixel = 0;
+	r.Parent = g;
+	(Instance.new("UICorner", r)).CornerRadius = UDim.new(0, 8);
+	local e = Instance.new("TextLabel");
+	e.Size = UDim2.new(0, 24, 0, 24);
+	e.Position = UDim2.new(0, 6, .5, -12);
+	e.BackgroundColor3 = Color3.fromRGB(70, 100, 180);
+	e.Text = tostring(S);
+	e.TextColor3 = Color3.fromRGB(255, 255, 255);
+	e.Font = Enum.Font.GothamBold;
+	e.TextSize = 12;
+	e.Parent = r;
+	(Instance.new("UICorner", e)).CornerRadius = UDim.new(1, 0);
+	local k = Instance.new("TextLabel");
+	k.Size = UDim2.new(1, -120, 1, -4);
+	k.Position = UDim2.new(0, 36, 0, 2);
+	k.BackgroundTransparency = 1;
+	k.TextXAlignment = Enum.TextXAlignment.Left;
+	k.TextYAlignment = Enum.TextYAlignment.Center;
+	k.TextColor3 = Color3.fromRGB(230, 230, 240);
+	k.Text = x.Name;
+	k.Font = Enum.Font.Gotham;
+	k.TextSize = z and 13 or 12;
+	k.TextTruncate = Enum.TextTruncate.AtEnd;
+	k.Parent = r;
+	local I = z and 36 or 32;
+	local G = Instance.new("TextButton");
+	G.Size = UDim2.new(0, I, 0, I);
+	G.Position = UDim2.new(1, -(I * 2 + 12), .5, -I / 2);
+	G.Text = "\240\159\146\161";
+	G.BackgroundColor3 = Color3.fromRGB(180, 160, 60);
+	G.Font = Enum.Font.GothamBold;
+	G.TextSize = z and 16 or 14;
+	G.Parent = r;
+	(Instance.new("UICorner", G)).CornerRadius = UDim.new(0, 6);
+	local n = Instance.new("TextButton");
+	n.Size = UDim2.new(0, I, 0, I);
+	n.Position = UDim2.new(1, -(I + 6), .5, -I / 2);
+	n.Text = "\240\159\147\139";
+	n.BackgroundColor3 = Color3.fromRGB(80, 160, 100);
+	n.Font = Enum.Font.GothamBold;
+	n.TextSize = z and 16 or 14;
+	n.Parent = r;
+	(Instance.new("UICorner", n)).CornerRadius = UDim.new(0, 6);
+	G.MouseButton1Click:Connect(function()
+		O(x);
+	end);
+	n.MouseButton1Click:Connect(function()
+		if setclipboard then
+			setclipboard(l(x));
+			n.Text = "\226\156\147";
+			task.delay(1, function()
+				n.Text = "\240\159\147\139";
+			end);
+		end;
+	end);
+	return r;
+end;
+T.MouseButton1Click:Connect(function()
+	local x = K.Text;
+	if x == "" then
+		return;
+	end;
+	s();
+	N.Text = "searching ...";
+	task.defer(function()
+		local S = m(x);
+		local L = z and 66 or 54;
+		g.CanvasSize = UDim2.new(0, 0, 0, #S * L + 40);
+		if #S == 0 then
+			N.Text = "Kh\195\180ng t\195\172m th\225\186\165y k\225\186\191t qu\225\186\163";
+			N.Visible = true;
+		else
+			N.Text = "T\195\172m th\225\186\165y " .. (#S .. " k\225\186\191t qu\225\186\163");
+			for x, S in ipairs(S) do
+				p(S, x);
+			end;
+		end;
+	end);
+end);
+K.FocusLost:Connect(function(x)
+	if x then
+		T.MouseButton1Click:Fire();
+	end;
+end);
+local o = false;
+local Q = w.Size;
+local t = TweenInfo.new(.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out);
+X.MouseButton1Click:Connect(function()
+	if o then
+		local x = L:Create(w, t, { Size = Q });
+		x:Play();
+		x.Completed:Wait();
+		E.Visible = true;
+		X.Text = "\226\136\146";
+		o = false;
+	else
+		E.Visible = false;
+		local x = L:Create(w, t, { Size = UDim2.new(0, 140, 0, 36) });
+		x:Play();
+		X.Text = "+";
+		o = true;
+	end;
+end);
