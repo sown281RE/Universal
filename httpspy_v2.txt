@@ -1,0 +1,774 @@
+-- HttpSpy GUI v2.0 - Anti-Detection Version
+-- Random naming và improved stealth features
+
+if rconsoleprint then
+    rconsoleprint("https://eleutheri.com - #1 Whitelist Service\n\n")
+end
+
+assert(syn or http, "Unsupported exploit (should support syn.request or http.request)")
+
+-- Random name generator
+local function generateRandomName()
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local name = ""
+    for i = 1, math.random(12, 20) do
+        local rand = math.random(1, #chars)
+        name = name .. chars:sub(rand, rand)
+    end
+    return name
+end
+
+local options = ({...})[1] or { 
+    AutoDecode = true, 
+    Highlighting = true, 
+    SaveLogs = true, 
+    CLICommands = true, 
+    ShowResponse = true, 
+    BlockedURLs = {}, 
+    API = true,
+    GuiEnabled = true
+}
+local version = "v2.0 Anti-Detection"
+local logname = string.format("%d-%s-log.txt", game.PlaceId, os.date("%d_%m_%y"))
+
+-- Random GUI names
+local GUI_NAMES = {
+    ScreenGui = generateRandomName(),
+    MainFrame = generateRandomName(),
+    TitleBar = generateRandomName(),
+    LogsFrame = generateRandomName(),
+    MinimizedIcon = generateRandomName()
+}
+
+if options.SaveLogs then
+    pcall(function()
+        writefile(logname, string.format("Http Logs from %s\n\n", os.date("%d/%m/%y")))
+    end)
+end
+
+local Serializer
+pcall(function()
+    Serializer = loadstring(game:HttpGet("https://raw.githubusercontent.com/NotDSF/leopard/main/rbx/leopard-syn.lua"))()
+    Serializer.UpdateConfig({ highlighting = options.Highlighting })
+end)
+
+if not Serializer then
+    warn("Failed to load Serializer - some features may not work properly")
+    Serializer = {
+        Serialize = function(t) return tostring(t) end,
+        FormatArguments = function(...) return table.concat({...}, ", ") end
+    }
+end
+
+local RecentCommit = "Anti-Detection Build"
+pcall(function()
+    RecentCommit = game.HttpService:JSONDecode(game:HttpGet("https://api.github.com/repos/NotDSF/HttpSpy/commits?per_page=1&path=init.lua"))[1].commit.message
+end)
+
+local success, err = pcall(function()
+    local clonef = clonefunction
+    local format = clonef(string.format)
+    local gsub = clonef(string.gsub)
+    local match = clonef(string.match)
+    local append = clonef(appendfile)
+    local Type = clonef(type)
+    local crunning = clonef(coroutine.running)
+    local cwrap = clonef(coroutine.wrap)
+    local cresume = clonef(coroutine.resume)
+    local cyield = clonef(coroutine.yield)
+    local Pcall = clonef(pcall)
+    local Pairs = clonef(pairs)
+    local Error = clonef(error)
+    local getnamecallmethod = clonef(getnamecallmethod)
+    local blocked = options.BlockedURLs
+    local enabled = true
+    local reqfunc = (syn or http).request
+    local libtype = syn and "syn" or "http"
+    local hooked = {}
+    local proxied = {}
+    local methods = {
+        HttpGet = not syn,
+        HttpGetAsync = not syn,
+        GetObjects = true,
+        HttpPost = not syn,
+        HttpPostAsync = not syn
+    }
+
+    local OnRequest = Instance.new("BindableEvent")
+
+    -- Create GUI with random names
+    local HttpSpyGui = Instance.new("ScreenGui")
+    HttpSpyGui.Name = GUI_NAMES.ScreenGui
+    HttpSpyGui.DisplayOrder = 999
+    HttpSpyGui.ResetOnSpawn = false
+    HttpSpyGui.IgnoreGuiInset = true
+    HttpSpyGui.Parent = game:GetService("CoreGui")
+
+    -- Main Window Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = GUI_NAMES.MainFrame
+    MainFrame.Size = UDim2.new(0, 650, 0, 450)
+    MainFrame.Position = UDim2.new(0.5, -325, 0.5, -225)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MainFrame.BorderColor3 = Color3.fromRGB(55, 55, 65)
+    MainFrame.BorderSizePixel = 2
+    MainFrame.ClipsDescendants = true
+    MainFrame.Parent = HttpSpyGui
+
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 8)
+    MainCorner.Parent = MainFrame
+
+    -- Draggable functionality
+    local dragInput, dragStart, startPos, dragging = nil, nil, nil, false
+    
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    MainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    -- Title Bar
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = GUI_NAMES.TitleBar
+    TitleBar.Size = UDim2.new(1, 0, 0, 35)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
+
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 8)
+    TitleCorner.Parent = TitleBar
+
+    local TitleCover = Instance.new("Frame")
+    TitleCover.Size = UDim2.new(1, 0, 0, 10)
+    TitleCover.Position = UDim2.new(0, 0, 1, -10)
+    TitleCover.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    TitleCover.BorderSizePixel = 0
+    TitleCover.Parent = TitleBar
+
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -200, 1, 0)
+    TitleText.Position = UDim2.new(0, 15, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Text = "🔍 HttpSpy " .. version
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextSize = 15
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = TitleBar
+
+    -- Button Container
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Size = UDim2.new(0, 210, 1, 0)
+    ButtonContainer.Position = UDim2.new(1, -215, 0, 0)
+    ButtonContainer.BackgroundTransparency = 1
+    ButtonContainer.Parent = TitleBar
+
+    -- Toggle Button
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 70, 0, 24)
+    ToggleButton.Position = UDim2.new(0, 0, 0.5, -12)
+    ToggleButton.Text = "🟢 ON"
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.TextSize = 12
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 140, 60)
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.AutoButtonColor = false
+    ToggleButton.Parent = ButtonContainer
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 6)
+    ToggleCorner.Parent = ToggleButton
+
+    -- Minimize Button
+    local MinimizeButton = Instance.new("TextButton")
+    MinimizeButton.Size = UDim2.new(0, 30, 0, 24)
+    MinimizeButton.Position = UDim2.new(0, 75, 0.5, -12)
+    MinimizeButton.Text = "━"
+    MinimizeButton.Font = Enum.Font.GothamBold
+    MinimizeButton.TextSize = 14
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinimizeButton.BorderSizePixel = 0
+    MinimizeButton.AutoButtonColor = false
+    MinimizeButton.Parent = ButtonContainer
+
+    local MinimizeCorner = Instance.new("UICorner")
+    MinimizeCorner.CornerRadius = UDim.new(0, 6)
+    MinimizeCorner.Parent = MinimizeButton
+
+    -- Maximize Button
+    local MaximizeButton = Instance.new("TextButton")
+    MaximizeButton.Size = UDim2.new(0, 30, 0, 24)
+    MaximizeButton.Position = UDim2.new(0, 110, 0.5, -12)
+    MaximizeButton.Text = "□"
+    MaximizeButton.Font = Enum.Font.GothamBold
+    MaximizeButton.TextSize = 14
+    MaximizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    MaximizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MaximizeButton.BorderSizePixel = 0
+    MaximizeButton.AutoButtonColor = false
+    MaximizeButton.Parent = ButtonContainer
+
+    local MaximizeCorner = Instance.new("UICorner")
+    MaximizeCorner.CornerRadius = UDim.new(0, 6)
+    MaximizeCorner.Parent = MaximizeButton
+
+    -- Close Button
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 30, 0, 24)
+    CloseButton.Position = UDim2.new(0, 145, 0.5, -12)
+    CloseButton.Text = "✕"
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 14
+    CloseButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.BorderSizePixel = 0
+    CloseButton.AutoButtonColor = false
+    CloseButton.Parent = ButtonContainer
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseButton
+
+    -- Minimized Icon
+    local MinimizedIcon = Instance.new("TextButton")
+    MinimizedIcon.Name = GUI_NAMES.MinimizedIcon
+    MinimizedIcon.Size = UDim2.new(0, 45, 0, 45)
+    MinimizedIcon.Position = UDim2.new(0.5, -22, 0, 15)
+    MinimizedIcon.Text = "🔍"
+    MinimizedIcon.Font = Enum.Font.GothamBold
+    MinimizedIcon.TextSize = 22
+    MinimizedIcon.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    MinimizedIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinimizedIcon.BorderSizePixel = 2
+    MinimizedIcon.BorderColor3 = Color3.fromRGB(55, 55, 65)
+    MinimizedIcon.AutoButtonColor = false
+    MinimizedIcon.Visible = false
+    MinimizedIcon.ZIndex = 1000
+    MinimizedIcon.Parent = HttpSpyGui
+
+    local MinimizedCorner = Instance.new("UICorner")
+    MinimizedCorner.CornerRadius = UDim.new(0, 8)
+    MinimizedCorner.Parent = MinimizedIcon
+
+    -- Logs Frame
+    local LogsFrame = Instance.new("ScrollingFrame")
+    LogsFrame.Name = GUI_NAMES.LogsFrame
+    LogsFrame.Size = UDim2.new(1, -20, 1, -110)
+    LogsFrame.Position = UDim2.new(0, 10, 0, 45)
+    LogsFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    LogsFrame.BorderSizePixel = 0
+    LogsFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
+    LogsFrame.ScrollBarThickness = 8
+    LogsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    LogsFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    LogsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    LogsFrame.Parent = MainFrame
+
+    local LogsCorner = Instance.new("UICorner")
+    LogsCorner.CornerRadius = UDim.new(0, 6)
+    LogsCorner.Parent = LogsFrame
+
+    local LogsLayout = Instance.new("UIListLayout")
+    LogsLayout.Padding = UDim.new(0, 10)
+    LogsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    LogsLayout.Parent = LogsFrame
+
+    local LogsPadding = Instance.new("UIPadding")
+    LogsPadding.PaddingLeft = UDim.new(0, 10)
+    LogsPadding.PaddingRight = UDim.new(0, 10)
+    LogsPadding.PaddingTop = UDim.new(0, 10)
+    LogsPadding.PaddingBottom = UDim.new(0, 10)
+    LogsPadding.Parent = LogsFrame
+
+    -- Control Bar
+    local ControlBar = Instance.new("Frame")
+    ControlBar.Size = UDim2.new(1, -20, 0, 50)
+    ControlBar.Position = UDim2.new(0, 10, 1, -60)
+    ControlBar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    ControlBar.BorderSizePixel = 0
+    ControlBar.Parent = MainFrame
+
+    local ControlCorner = Instance.new("UICorner")
+    ControlCorner.CornerRadius = UDim.new(0, 6)
+    ControlCorner.Parent = ControlBar
+
+    -- Clear Button
+    local ClearButton = Instance.new("TextButton")
+    ClearButton.Size = UDim2.new(0, 90, 0, 30)
+    ClearButton.Position = UDim2.new(0, 10, 0.5, -15)
+    ClearButton.Text = "🗑️ Clear"
+    ClearButton.Font = Enum.Font.GothamBold
+    ClearButton.TextSize = 13
+    ClearButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    ClearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ClearButton.BorderSizePixel = 0
+    ClearButton.AutoButtonColor = false
+    ClearButton.Parent = ControlBar
+
+    local ClearCorner = Instance.new("UICorner")
+    ClearCorner.CornerRadius = UDim.new(0, 6)
+    ClearCorner.Parent = ClearButton
+
+    -- Filter Box
+    local FilterBox = Instance.new("TextBox")
+    FilterBox.Size = UDim2.new(0, 250, 0, 30)
+    FilterBox.Position = UDim2.new(0, 110, 0.5, -15)
+    FilterBox.PlaceholderText = "🔎 Filter requests..."
+    FilterBox.Text = ""
+    FilterBox.Font = Enum.Font.Gotham
+    FilterBox.TextSize = 12
+    FilterBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    FilterBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FilterBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 160)
+    FilterBox.BorderSizePixel = 0
+    FilterBox.TextXAlignment = Enum.TextXAlignment.Left
+    FilterBox.Parent = ControlBar
+
+    local FilterCorner = Instance.new("UICorner")
+    FilterCorner.CornerRadius = UDim.new(0, 6)
+    FilterCorner.Parent = FilterBox
+
+    local FilterPadding = Instance.new("UIPadding")
+    FilterPadding.PaddingLeft = UDim.new(0, 10)
+    FilterPadding.Parent = FilterBox
+
+    -- Request Counter
+    local RequestCount = Instance.new("TextLabel")
+    RequestCount.Size = UDim2.new(0, 150, 1, 0)
+    RequestCount.Position = UDim2.new(1, -160, 0, 0)
+    RequestCount.Text = "📊 Requests: 0"
+    RequestCount.Font = Enum.Font.GothamBold
+    RequestCount.TextSize = 13
+    RequestCount.BackgroundTransparency = 1
+    RequestCount.TextColor3 = Color3.fromRGB(100, 200, 255)
+    RequestCount.TextXAlignment = Enum.TextXAlignment.Right
+    RequestCount.Parent = ControlBar
+
+    local requestCount = 0
+
+    -- Hover effects
+    local function addHoverEffect(button, hoverColor, normalColor)
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = hoverColor
+        end)
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = normalColor
+        end)
+    end
+
+    addHoverEffect(ToggleButton, Color3.fromRGB(50, 160, 80), Color3.fromRGB(40, 140, 60))
+    addHoverEffect(MinimizeButton, Color3.fromRGB(80, 80, 90), Color3.fromRGB(60, 60, 70))
+    addHoverEffect(MaximizeButton, Color3.fromRGB(80, 80, 90), Color3.fromRGB(60, 60, 70))
+    addHoverEffect(CloseButton, Color3.fromRGB(220, 70, 70), Color3.fromRGB(180, 50, 50))
+    addHoverEffect(ClearButton, Color3.fromRGB(70, 70, 80), Color3.fromRGB(50, 50, 60))
+    addHoverEffect(MinimizedIcon, Color3.fromRGB(45, 45, 55), Color3.fromRGB(30, 30, 38))
+
+    -- Toggle functionality
+    ToggleButton.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        ToggleButton.Text = enabled and "🟢 ON" or "🔴 OFF"
+        ToggleButton.BackgroundColor3 = enabled and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(140, 40, 40)
+    end)
+
+    -- Minimize functionality
+    local isMinimized = false
+    MinimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = true
+        MainFrame.Visible = false
+        MinimizedIcon.Visible = true
+    end)
+
+    MinimizedIcon.MouseButton1Click:Connect(function()
+        isMinimized = false
+        MainFrame.Visible = true
+        MinimizedIcon.Visible = false
+    end)
+
+    -- Maximize functionality
+    local isMaximized = false
+    local normalSize = MainFrame.Size
+    local normalPos = MainFrame.Position
+    
+    MaximizeButton.MouseButton1Click:Connect(function()
+        isMaximized = not isMaximized
+        if isMaximized then
+            MainFrame.Size = UDim2.new(0.95, 0, 0.95, 0)
+            MainFrame.Position = UDim2.new(0.025, 0, 0.025, 0)
+            MaximizeButton.Text = "❐"
+        else
+            MainFrame.Size = normalSize
+            MainFrame.Position = normalPos
+            MaximizeButton.Text = "□"
+        end
+    end)
+
+    -- Close functionality
+    CloseButton.MouseButton1Click:Connect(function()
+        if __namecall then
+            hookmetamethod(game, "__namecall", __namecall)
+        end
+        if __request then
+            hookfunction(reqfunc, __request)
+        end
+        HttpSpyGui:Destroy()
+        getgenv().HttpSpy = nil
+    end)
+
+    -- Clear logs
+    ClearButton.MouseButton1Click:Connect(function()
+        for _, child in ipairs(LogsFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+        requestCount = 0
+        RequestCount.Text = "📊 Requests: 0"
+    end)
+
+    -- Filter functionality
+    FilterBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local filterText = string.lower(FilterBox.Text)
+        for _, logEntry in ipairs(LogsFrame:GetChildren()) do
+            if logEntry:IsA("Frame") then
+                local contentLabel = logEntry:FindFirstChild("ContentLabel")
+                if contentLabel and contentLabel.Text then
+                    logEntry.Visible = filterText == "" or string.find(string.lower(contentLabel.Text), filterText, 1, true) ~= nil
+                end
+            end
+        end
+    end)
+
+    -- Printf function for GUI
+    local function printf(text, isResponse)
+        if options.SaveLogs then
+            pcall(function()
+                append(logname, gsub(text, "%\27%[%d+m", ""))
+            end)
+        end
+        
+        if not options.GuiEnabled then return end
+        
+        local cleanText = text:gsub("\27%[[%d;]+m", "")
+        
+        task.spawn(function()
+            pcall(function()
+                requestCount = requestCount + 1
+                RequestCount.Text = "📊 Requests: " .. requestCount
+                
+                local logEntry = Instance.new("Frame")
+                logEntry.Name = generateRandomName()
+                logEntry.Size = UDim2.new(1, -10, 0, 0)
+                logEntry.BackgroundColor3 = isResponse and Color3.fromRGB(25, 40, 25) or Color3.fromRGB(35, 25, 40)
+                logEntry.BorderSizePixel = 0
+                logEntry.AutomaticSize = Enum.AutomaticSize.Y
+                logEntry.LayoutOrder = requestCount
+                logEntry.Parent = LogsFrame
+                
+                local entryCorner = Instance.new("UICorner")
+                entryCorner.CornerRadius = UDim.new(0, 6)
+                entryCorner.Parent = logEntry
+                
+                local entryPadding = Instance.new("UIPadding")
+                entryPadding.PaddingLeft = UDim.new(0, 12)
+                entryPadding.PaddingRight = UDim.new(0, 12)
+                entryPadding.PaddingTop = UDim.new(0, 10)
+                entryPadding.PaddingBottom = UDim.new(0, 10)
+                entryPadding.Parent = logEntry
+                
+                local topBar = Instance.new("Frame")
+                topBar.Size = UDim2.new(1, 0, 0, 20)
+                topBar.BackgroundTransparency = 1
+                topBar.Parent = logEntry
+                
+                local typeLabel = Instance.new("TextLabel")
+                typeLabel.Size = UDim2.new(0, 100, 1, 0)
+                typeLabel.BackgroundTransparency = 1
+                typeLabel.Text = isResponse and "📥 Response" or "📤 Request"
+                typeLabel.TextColor3 = isResponse and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 150, 100)
+                typeLabel.Font = Enum.Font.GothamBold
+                typeLabel.TextSize = 12
+                typeLabel.TextXAlignment = Enum.TextXAlignment.Left
+                typeLabel.Parent = topBar
+                
+                local timeLabel = Instance.new("TextLabel")
+                timeLabel.Size = UDim2.new(0, 80, 1, 0)
+                timeLabel.Position = UDim2.new(0, 110, 0, 0)
+                timeLabel.BackgroundTransparency = 1
+                timeLabel.Text = "⏰ " .. os.date("%H:%M:%S")
+                timeLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
+                timeLabel.Font = Enum.Font.Gotham
+                timeLabel.TextSize = 11
+                timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+                timeLabel.Parent = topBar
+                
+                local copyButton = Instance.new("TextButton")
+                copyButton.Size = UDim2.new(0, 60, 0, 20)
+                copyButton.Position = UDim2.new(1, -60, 0, 0)
+                copyButton.Text = "📋 Copy"
+                copyButton.Font = Enum.Font.GothamBold
+                copyButton.TextSize = 11
+                copyButton.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+                copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                copyButton.BorderSizePixel = 0
+                copyButton.AutoButtonColor = false
+                copyButton.Parent = topBar
+                
+                local copyCorner = Instance.new("UICorner")
+                copyCorner.CornerRadius = UDim.new(0, 4)
+                copyCorner.Parent = copyButton
+                
+                addHoverEffect(copyButton, Color3.fromRGB(80, 100, 140), Color3.fromRGB(60, 80, 120))
+                
+                copyButton.MouseButton1Click:Connect(function()
+                    setclipboard(cleanText)
+                    copyButton.Text = "✓ Copied"
+                    task.wait(1.5)
+                    copyButton.Text = "📋 Copy"
+                end)
+                
+                local contentLabel = Instance.new("TextLabel")
+                contentLabel.Name = "ContentLabel"
+                contentLabel.Size = UDim2.new(1, 0, 0, 0)
+                contentLabel.Position = UDim2.new(0, 0, 0, 25)
+                contentLabel.Text = cleanText
+                contentLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+                contentLabel.BackgroundTransparency = 1
+                contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+                contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+                contentLabel.TextWrapped = true
+                contentLabel.Font = Enum.Font.Code
+                contentLabel.TextSize = 13
+                contentLabel.AutomaticSize = Enum.AutomaticSize.Y
+                contentLabel.Parent = logEntry
+                
+                if FilterBox.Text == "" then
+                    task.wait()
+                    LogsFrame.CanvasPosition = Vector2.new(0, LogsFrame.AbsoluteCanvasSize.Y)
+                end
+            end)
+        end)
+    end
+
+    -- Rest of HttpSpy logic (hooks, etc.)
+    local function ConstantScan(constant)
+        for i,v in Pairs(getgc(true)) do
+            if type(v) == "function" and islclosure(v) and getfenv(v).script == getfenv(saveinstance).script and table.find(debug.getconstants(v), constant) then
+                return v
+            end
+        end
+    end
+
+    local function DeepClone(tbl, cloned)
+        cloned = cloned or {}
+        for i,v in Pairs(tbl) do
+            if Type(v) == "table" then
+                cloned[i] = DeepClone(v)
+                continue
+            end
+            cloned[i] = v
+        end
+        return cloned
+    end
+
+    local __namecall, __request
+    __namecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if methods[method] then
+            printf("game:"..method.."("..Serializer.FormatArguments(...)..")\n\n")
+        end
+        return __namecall(self, ...)
+    end))
+
+    __request = hookfunction(reqfunc, newcclosure(function(req) 
+        if Type(req) ~= "table" then return __request(req) end
+        
+        local RequestData = DeepClone(req)
+        if not enabled then
+            return __request(req)
+        end
+
+        if Type(RequestData.Url) ~= "string" then return __request(req) end
+
+        if not options.ShowResponse then
+            printf(libtype..".request("..Serializer.Serialize(RequestData)..")\n\n")
+            return __request(req)
+        end
+
+        local t = crunning()
+        cwrap(function() 
+            if RequestData.Url and blocked[RequestData.Url] then
+                printf(libtype..".request("..Serializer.Serialize(RequestData)..") -- blocked url\n\n")
+                return cresume(t, {})
+            end
+
+            if RequestData.Url then
+                local Host = string.match(RequestData.Url, "https?://(%w+.%w+)/")
+                if Host and proxied[Host] then
+                    RequestData.Url = gsub(RequestData.Url, Host, proxied[Host], 1)
+                end
+            end
+
+            OnRequest:Fire(RequestData)
+
+            local ok, ResponseData = Pcall(__request, RequestData)
+            if not ok then
+                Error(ResponseData, 0)
+            end
+
+            local BackupData = {}
+            for i,v in Pairs(ResponseData) do
+                BackupData[i] = v
+            end
+
+            if BackupData.Headers["Content-Type"] and match(BackupData.Headers["Content-Type"], "application/json") and options.AutoDecode then
+                local body = BackupData.Body
+                local ok, res = Pcall(game.HttpService.JSONDecode, game.HttpService, body)
+                if ok then
+                    BackupData.Body = res
+                end
+            end
+
+            printf(libtype..".request("..Serializer.Serialize(RequestData)..")\n\n", false)
+            printf("Response Data: "..Serializer.Serialize(BackupData).."\n\n", true)
+            cresume(t, hooked[RequestData.Url] and hooked[RequestData.Url](ResponseData) or ResponseData)
+        end)()
+        return cyield()
+    end))
+
+    if request then
+        replaceclosure(request, reqfunc)
+    end
+
+    if syn and syn.websocket then
+        local WsConnect, WsBackup = debug.getupvalue(syn.websocket.connect, 1)
+        WsBackup = hookfunction(WsConnect, function(...) 
+            printf("syn.websocket.connect("..Serializer.FormatArguments(...)..")\n\n")
+            return WsBackup(...)
+        end)
+    end
+
+    if syn and syn.websocket then
+        local HttpGet
+        HttpGet = hookfunction(getupvalue(ConstantScan("ZeZLm2hpvGJrD6OP8A3aEszPNEw8OxGb"), 2), function(self, ...) 
+            printf("game.HttpGet(game, "..Serializer.FormatArguments(...)..")\n\n")
+            return HttpGet(self, ...)
+        end)
+
+        local HttpPost
+        HttpPost = hookfunction(getupvalue(ConstantScan("gpGXBVpEoOOktZWoYECgAY31o0BlhOue"), 2), function(self, ...) 
+            printf("game.HttpPost(game, "..Serializer.FormatArguments(...)..")\n\n")
+            return HttpPost(self, ...)
+        end)
+    end
+
+    for method, enabled in Pairs(methods) do
+        if enabled then
+            local b
+            b = hookfunction(game[method], newcclosure(function(self, ...) 
+                printf("game."..method.."(game, "..Serializer.FormatArguments(...)..")\n\n")
+                return b(self, ...)
+            end))
+        end
+    end
+
+    if not debug.info(2, "f") then
+        printf("You are running an outdated version, please use the loadstring at https://github.com/NotDSF/HttpSpy\n")
+    end
+
+    task.spawn(function()
+        printf("HttpSpy "..version.." - Anti-Detection Build\n✓ GUI Names Randomized\n✓ Stealth Mode Active\nChange Logs:\n\t"..RecentCommit.."\nLogs saved to: "..(options.SaveLogs and logname or "(Disabled)").."\n\n")
+    end)
+
+    if not options.API then return end
+
+    local API = {}
+    API.OnRequest = OnRequest.Event
+
+    function API:HookSynRequest(url, hook) 
+        hooked[url] = hook
+    end
+
+    function API:ProxyHost(host, proxy) 
+        proxied[host] = proxy
+    end
+
+    function API:RemoveProxy(host) 
+        if not proxied[host] then
+            error("host isn't proxied", 0)
+        end
+        proxied[host] = nil
+    end
+
+    function API:UnHookSynRequest(url) 
+        if not hooked[url] then
+            error("url isn't hooked", 0)
+        end
+        hooked[url] = nil
+    end
+
+    function API:BlockUrl(url) 
+        blocked[url] = true
+    end
+
+    function API:WhitelistUrl(url) 
+        blocked[url] = false
+    end
+
+    function API:ToggleGui(visible)
+        HttpSpyGui.Enabled = visible
+        options.GuiEnabled = visible
+    end
+
+    function API:SetGuiPosition(position)
+        MainFrame.Position = position
+    end
+
+    function API:SetGuiSize(size)
+        MainFrame.Size = size
+    end
+
+    function API:GetGuiNames()
+        return GUI_NAMES
+    end
+
+    return API
+end)
+
+if not success and err then
+    warn("HttpSpy initialization failed: "..tostring(err))
+    if rconsoleprint then
+        rconsoleprint("@@RED@@")
+        rconsoleprint("HttpSpy initialization error: "..tostring(err).."\n")
+    end
+    return nil
+end
