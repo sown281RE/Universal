@@ -1,8 +1,4 @@
 --// This file was created by XHider https://discord.com/invite/E2N7w35zkt
-
-if rconsoleprint then
-	rconsoleprint("https://eleutheri.com - #1 Whitelist Service\n\n");
-end;
 assert(syn or http, "Unsupported exploit (should support syn.request or http.request)");
 local function R()
 	local R = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
