@@ -1,5 +1,7 @@
 --// This file was created by XHider https://discord.com/invite/E2N7w35zkt
 
+-- minimized for performance 😝
+
 local x = game:GetService("Players");
 local S = game:GetService("UserInputService");
 local L = game:GetService("TweenService");
