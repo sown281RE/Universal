@@ -1,650 +1,640 @@
---// HttpSpy Enhanced v2.1 - Multi-Output Support
-assert(syn or http, "Unsupported exploit (should support syn.request or http.request)")
-
+--// This file was created by XHider https://discord.com/invite/E2N7w35zkt
+assert(syn or http, "Unsupported exploit (should support syn.request or http.request)");
 local function R()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local result = ""
-    for i = 1, math.random(12, 20) do
-        local j = math.random(1, #chars)
-        result = result .. chars:sub(j, j)
-    end
-    return result
-end
-
-local config = ({...})[1] or {
-    AutoDecode = true,
-    Highlighting = true,
-    SaveLogs = true,
-    ShowResponse = true,
-    BlockedURLs = {},
-    API = true
-}
-
-local version = "v2.1 Enhanced"
-local logFile = string.format("%d-%s-log.txt", game.PlaceId, os.date("%d_%m_%y"))
-local guiNames = {
-    ScreenGui = R(),
-    MainFrame = R(),
-    SelectFrame = R(),
-    TitleBar = R(),
-    LogsFrame = R(),
-    MinimizedIcon = R()
-}
-
-local outputMode = nil -- "ui" hoặc "console"
-local isEnabled = true
-local requestCount = 0
-
-if config.SaveLogs then
-    pcall(function()
-        writefile(logFile, string.format("Http Logs from %s\n\n", os.date("%d/%m/%y")))
-    end)
-end
-
-local serializer
+	local R = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	local L = "";
+	for Q = 1, math.random(12, 20), 1 do
+		local J = math.random(1, #R);
+		L = L .. R:sub(J, J);
+	end;
+	return L;
+end;
+local L = ({ ... })[1] or {
+		AutoDecode = true,
+		Highlighting = true,
+		SaveLogs = true,
+		CLICommands = true,
+		ShowResponse = true,
+		BlockedURLs = {},
+		API = true,
+		GuiEnabled = true,
+	};
+local Q = "v2.0 Anti-Detection";
+local J = string.format("%d-%s-log.txt", game.PlaceId, os.date("%d_%m_%y"));
+local c = {
+		ScreenGui = R(),
+		MainFrame = R(),
+		TitleBar = R(),
+		LogsFrame = R(),
+		MinimizedIcon = R(),
+	};
+if L.SaveLogs then
+	pcall(function()
+		writefile(J, string.format("Http Logs from %s\n\n", os.date("%d/%m/%y")));
+	end);
+end;
+local x;
 pcall(function()
-    serializer = loadstring(game:HttpGet("https://raw.githubusercontent.com/NotDSF/leopard/main/rbx/leopard-syn.lua"))()
-    serializer.UpdateConfig({highlighting = config.Highlighting})
-end)
-
-if not serializer then
-    warn("Failed to load Serializer")
-    serializer = {
-        Serialize = function(data) return tostring(data) end,
-        FormatArguments = function(...) return table.concat({...}, ", ") end
-    }
-end
-
-local function createSelectionUI()
-    local sg = Instance.new("ScreenGui")
-    sg.Name = guiNames.ScreenGui
-    sg.DisplayOrder = 9999
-    sg.ResetOnSpawn = false
-    sg.IgnoreGuiInset = true
-    sg.Parent = game:GetService("CoreGui")
-    
-    local overlay = Instance.new("Frame")
-    overlay.Size = UDim2.new(1, 0, 1, 0)
-    overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    overlay.BackgroundTransparency = 0.5
-    overlay.BorderSizePixel = 0
-    overlay.Parent = sg
-    
-    local selectFrame = Instance.new("Frame")
-    selectFrame.Name = guiNames.SelectFrame
-    selectFrame.Size = UDim2.new(0, 400, 0, 280)
-    selectFrame.Position = UDim2.new(0.5, -200, 0.5, -140)
-    selectFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    selectFrame.BorderColor3 = Color3.fromRGB(60, 60, 70)
-    selectFrame.BorderSizePixel = 2
-    selectFrame.Parent = sg
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = selectFrame
-    
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -40, 0, 50)
-    title.Position = UDim2.new(0, 20, 0, 20)
-    title.BackgroundTransparency = 1
-    title.Text = "HttpSpy - Select Output Mode"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 18
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = selectFrame
-    
-    local desc = Instance.new("TextLabel")
-    desc.Size = UDim2.new(1, -40, 0, 40)
-    desc.Position = UDim2.new(0, 20, 0, 70)
-    desc.BackgroundTransparency = 1
-    desc.Text = "Choose where to display HTTP request logs:"
-    desc.TextColor3 = Color3.fromRGB(180, 180, 190)
-    desc.Font = Enum.Font.Gotham
-    desc.TextSize = 14
-    desc.TextXAlignment = Enum.TextXAlignment.Left
-    desc.TextWrapped = true
-    desc.Parent = selectFrame
-    
-    local function createButton(text, desc, pos, color, mode)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -40, 0, 60)
-        btn.Position = pos
-        btn.BackgroundColor3 = color
-        btn.BorderSizePixel = 0
-        btn.AutoButtonColor = false
-        btn.Parent = selectFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 8)
-        btnCorner.Parent = btn
-        
-        local btnTitle = Instance.new("TextLabel")
-        btnTitle.Size = UDim2.new(1, -20, 0, 25)
-        btnTitle.Position = UDim2.new(0, 10, 0, 8)
-        btnTitle.BackgroundTransparency = 1
-        btnTitle.Text = text
-        btnTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btnTitle.Font = Enum.Font.GothamBold
-        btnTitle.TextSize = 15
-        btnTitle.TextXAlignment = Enum.TextXAlignment.Left
-        btnTitle.Parent = btn
-        
-        local btnDesc = Instance.new("TextLabel")
-        btnDesc.Size = UDim2.new(1, -20, 0, 20)
-        btnDesc.Position = UDim2.new(0, 10, 0, 33)
-        btnDesc.BackgroundTransparency = 1
-        btnDesc.Text = desc
-        btnDesc.TextColor3 = Color3.fromRGB(200, 200, 210)
-        btnDesc.Font = Enum.Font.Gotham
-        btnDesc.TextSize = 12
-        btnDesc.TextXAlignment = Enum.TextXAlignment.Left
-        btnDesc.Parent = btn
-        
-        btn.MouseEnter:Connect(function()
-            btn.BackgroundColor3 = Color3.fromRGB(
-                math.min(color.R * 255 + 20, 255),
-                math.min(color.G * 255 + 20, 255),
-                math.min(color.B * 255 + 20, 255)
-            )
-        end)
-        
-        btn.MouseLeave:Connect(function()
-            btn.BackgroundColor3 = color
-        end)
-        
-        btn.MouseButton1Click:Connect(function()
-            outputMode = mode
-            sg:Destroy()
-        end)
-    end
-    
-    createButton(
-        "Custom UI",
-        "Display in custom interface (recommended)",
-        UDim2.new(0, 20, 0, 120),
-        Color3.fromRGB(50, 120, 200),
-        "ui"
-    )
-    
-    createButton(
-        "Console Output",
-        "Log to developer console (F9)",
-        UDim2.new(0, 20, 0, 190),
-        Color3.fromRGB(100, 60, 180),
-        "console"
-    )
-end
-
-local function logToConsole(text, isResponse)
-    local prefix = isResponse and "[RESPONSE]" or "[REQUEST]"
-    local color = isResponse and "@@GREEN@@" or "@@CYAN@@"
-    
-    if rconsoleprint then
-        rconsoleprint(color)
-        rconsoleprint(string.format("%s %s\n%s\n\n", prefix, os.date("%H:%M:%S"), text))
-        rconsoleprint("@@WHITE@@")
-    else
-        print(string.format("%s %s\n%s", prefix, os.date("%H:%M:%S"), text))
-    end
-end
-
-local function createMainUI()
-    local sg = Instance.new("ScreenGui")
-    sg.Name = guiNames.ScreenGui
-    sg.DisplayOrder = 999
-    sg.ResetOnSpawn = false
-    sg.IgnoreGuiInset = true
-    sg.Parent = game:GetService("CoreGui")
-    
-    local isMobile = game:GetService("UserInputService").TouchEnabled and not game:GetService("UserInputService").KeyboardEnabled
-    local frameWidth = isMobile and 350 or 420
-    local frameHeight = isMobile and 450 or 500
-    
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = guiNames.MainFrame
-    mainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
-    mainFrame.Position = UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 70)
-    mainFrame.BorderSizePixel = 2
-    mainFrame.ClipsDescendants = true
-    mainFrame.Parent = sg
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = mainFrame
-    
-    -- Dragging
-    local dragging, dragInput, dragStart, startPos
-    mainFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = mainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    mainFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-    
-    -- Title Bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = guiNames.TitleBar
-    titleBar.Size = UDim2.new(1, 0, 0, 45)
-    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = mainFrame
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
-    titleCorner.Parent = titleBar
-    
-    local titleFix = Instance.new("Frame")
-    titleFix.Size = UDim2.new(1, 0, 0, 15)
-    titleFix.Position = UDim2.new(0, 0, 1, -15)
-    titleFix.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-    titleFix.BorderSizePixel = 0
-    titleFix.Parent = titleBar
-    
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -180, 1, 0)
-    title.Position = UDim2.new(0, 15, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "HttpSpy " .. version
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = isMobile and 14 or 16
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleBar
-    
-    -- Buttons Container
-    local btnContainer = Instance.new("Frame")
-    btnContainer.Size = UDim2.new(0, 180, 1, 0)
-    btnContainer.Position = UDim2.new(1, -185, 0, 0)
-    btnContainer.BackgroundTransparency = 1
-    btnContainer.Parent = titleBar
-    
-    local function createTitleButton(text, pos, color, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, isMobile and 38 or 40, 0, isMobile and 26 or 28)
-        btn.Position = pos
-        btn.Text = text
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = isMobile and 11 or 12
-        btn.BackgroundColor3 = color
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.BorderSizePixel = 0
-        btn.AutoButtonColor = false
-        btn.Parent = btnContainer
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-        
-        local hoverColor = Color3.fromRGB(
-            math.min(color.R * 255 + 20, 255),
-            math.min(color.G * 255 + 20, 255),
-            math.min(color.B * 255 + 20, 255)
-        )
-        
-        btn.MouseEnter:Connect(function()
-            btn.BackgroundColor3 = hoverColor
-        end)
-        
-        btn.MouseLeave:Connect(function()
-            btn.BackgroundColor3 = color
-        end)
-        
-        btn.MouseButton1Click:Connect(callback)
-        
-        return btn
-    end
-    
-    local toggleBtn = createTitleButton(
-        "ON",
-        UDim2.new(0, 0, 0.5, -14),
-        Color3.fromRGB(40, 140, 60),
-        function()
-            isEnabled = not isEnabled
-            toggleBtn.Text = isEnabled and "ON" or "OFF"
-            toggleBtn.BackgroundColor3 = isEnabled and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(140, 40, 40)
-        end
-    )
-    
-    createTitleButton(
-        "[-]",
-        UDim2.new(0, isMobile and 43 or 45, 0.5, -14),
-        Color3.fromRGB(60, 60, 70),
-        function()
-            mainFrame.Visible = false
-            local minimized = Instance.new("TextButton")
-            minimized.Name = guiNames.MinimizedIcon
-            minimized.Size = UDim2.new(0, 50, 0, 50)
-            minimized.Position = UDim2.new(0.5, -25, 0, 15)
-            minimized.Text = "HTTP"
-            minimized.Font = Enum.Font.GothamBold
-            minimized.TextSize = 14
-            minimized.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-            minimized.TextColor3 = Color3.fromRGB(255, 255, 255)
-            minimized.BorderSizePixel = 2
-            minimized.BorderColor3 = Color3.fromRGB(60, 60, 70)
-            minimized.AutoButtonColor = false
-            minimized.ZIndex = 1000
-            minimized.Parent = sg
-            
-            local minCorner = Instance.new("UICorner")
-            minCorner.CornerRadius = UDim.new(0, 10)
-            minCorner.Parent = minimized
-            
-            minimized.MouseButton1Click:Connect(function()
-                mainFrame.Visible = true
-                minimized:Destroy()
-            end)
-        end
-    )
-    
-    createTitleButton(
-        "[+]",
-        UDim2.new(0, isMobile and 86 or 90, 0.5, -14),
-        Color3.fromRGB(60, 60, 70),
-        function()
-            if mainFrame.Size == UDim2.new(0, frameWidth, 0, frameHeight) then
-                mainFrame.Size = UDim2.new(0.95, 0, 0.95, 0)
-                mainFrame.Position = UDim2.new(0.025, 0, 0.025, 0)
-            else
-                mainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
-                mainFrame.Position = UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
-            end
-        end
-    )
-    
-    createTitleButton(
-        "X",
-        UDim2.new(0, isMobile and 129 or 135, 0.5, -14),
-        Color3.fromRGB(180, 50, 50),
-        function()
-            sg:Destroy()
-        end
-    )
-    
-    -- Logs Frame
-    local logsFrame = Instance.new("ScrollingFrame")
-    logsFrame.Name = guiNames.LogsFrame
-    logsFrame.Size = UDim2.new(1, -20, 1, -120)
-    logsFrame.Position = UDim2.new(0, 10, 0, 55)
-    logsFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    logsFrame.BorderSizePixel = 0
-    logsFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
-    logsFrame.ScrollBarThickness = 6
-    logsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    logsFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    logsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    logsFrame.Parent = mainFrame
-    
-    local logsCorner = Instance.new("UICorner")
-    logsCorner.CornerRadius = UDim.new(0, 8)
-    logsCorner.Parent = logsFrame
-    
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 8)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Parent = logsFrame
-    
-    local logsPadding = Instance.new("UIPadding")
-    logsPadding.PaddingLeft = UDim.new(0, 8)
-    logsPadding.PaddingRight = UDim.new(0, 8)
-    logsPadding.PaddingTop = UDim.new(0, 8)
-    logsPadding.PaddingBottom = UDim.new(0, 8)
-    logsPadding.Parent = logsFrame
-    
-    -- Bottom Bar
-    local bottomBar = Instance.new("Frame")
-    bottomBar.Size = UDim2.new(1, -20, 0, 55)
-    bottomBar.Position = UDim2.new(0, 10, 1, -65)
-    bottomBar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-    bottomBar.BorderSizePixel = 0
-    bottomBar.Parent = mainFrame
-    
-    local bottomCorner = Instance.new("UICorner")
-    bottomCorner.CornerRadius = UDim.new(0, 8)
-    bottomCorner.Parent = bottomBar
-    
-    local clearBtn = Instance.new("TextButton")
-    clearBtn.Size = UDim2.new(0, isMobile and 75 or 85, 0, 35)
-    clearBtn.Position = UDim2.new(0, 10, 0.5, -17.5)
-    clearBtn.Text = "Clear"
-    clearBtn.Font = Enum.Font.GothamBold
-    clearBtn.TextSize = isMobile and 12 or 13
-    clearBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    clearBtn.BorderSizePixel = 0
-    clearBtn.AutoButtonColor = false
-    clearBtn.Parent = bottomBar
-    
-    local clearCorner = Instance.new("UICorner")
-    clearCorner.CornerRadius = UDim.new(0, 6)
-    clearCorner.Parent = clearBtn
-    
-    clearBtn.MouseButton1Click:Connect(function()
-        for _, child in ipairs(logsFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
-            end
-        end
-        requestCount = 0
-    end)
-    
-    local countLabel = Instance.new("TextLabel")
-    countLabel.Size = UDim2.new(0, 150, 1, 0)
-    countLabel.Position = UDim2.new(1, -160, 0, 0)
-    countLabel.Text = "Requests: 0"
-    countLabel.Font = Enum.Font.GothamBold
-    countLabel.TextSize = isMobile and 12 or 13
-    countLabel.BackgroundTransparency = 1
-    countLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-    countLabel.TextXAlignment = Enum.TextXAlignment.Right
-    countLabel.Parent = bottomBar
-    
-    local function addLog(text, isResponse)
-        local cleanText = text:gsub("\027%[[%d;]+m", "")
-        
-        task.spawn(function()
-            pcall(function()
-                requestCount = requestCount + 1
-                countLabel.Text = "Requests: " .. requestCount
-                
-                local logFrame = Instance.new("Frame")
-                logFrame.Name = R()
-                logFrame.Size = UDim2.new(1, -10, 0, 0)
-                logFrame.BackgroundColor3 = isResponse and Color3.fromRGB(25, 40, 25) or Color3.fromRGB(35, 25, 40)
-                logFrame.BorderSizePixel = 0
-                logFrame.AutomaticSize = Enum.AutomaticSize.Y
-                logFrame.LayoutOrder = requestCount
-                logFrame.Parent = logsFrame
-                
-                local logCorner = Instance.new("UICorner")
-                logCorner.CornerRadius = UDim.new(0, 6)
-                logCorner.Parent = logFrame
-                
-                local logPadding = Instance.new("UIPadding")
-                logPadding.PaddingLeft = UDim.new(0, 10)
-                logPadding.PaddingRight = UDim.new(0, 10)
-                logPadding.PaddingTop = UDim.new(0, 8)
-                logPadding.PaddingBottom = UDim.new(0, 8)
-                logPadding.Parent = logFrame
-                
-                local header = Instance.new("Frame")
-                header.Size = UDim2.new(1, 0, 0, 20)
-                header.BackgroundTransparency = 1
-                header.Parent = logFrame
-                
-                local typeLabel = Instance.new("TextLabel")
-                typeLabel.Size = UDim2.new(0, 100, 1, 0)
-                typeLabel.BackgroundTransparency = 1
-                typeLabel.Text = isResponse and "Response" or "Request"
-                typeLabel.TextColor3 = isResponse and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 150, 100)
-                typeLabel.Font = Enum.Font.GothamBold
-                typeLabel.TextSize = isMobile and 11 or 12
-                typeLabel.TextXAlignment = Enum.TextXAlignment.Left
-                typeLabel.Parent = header
-                
-                local timeLabel = Instance.new("TextLabel")
-                timeLabel.Size = UDim2.new(0, 80, 1, 0)
-                timeLabel.Position = UDim2.new(0, 105, 0, 0)
-                timeLabel.BackgroundTransparency = 1
-                timeLabel.Text = os.date("%H:%M:%S")
-                timeLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
-                timeLabel.Font = Enum.Font.Gotham
-                timeLabel.TextSize = isMobile and 10 or 11
-                timeLabel.TextXAlignment = Enum.TextXAlignment.Left
-                timeLabel.Parent = header
-                
-                local copyBtn = Instance.new("TextButton")
-                copyBtn.Size = UDim2.new(0, isMobile and 50 or 55, 0, 20)
-                copyBtn.Position = UDim2.new(1, -(isMobile and 50 or 55), 0, 0)
-                copyBtn.Text = "Copy"
-                copyBtn.Font = Enum.Font.GothamBold
-                copyBtn.TextSize = isMobile and 10 or 11
-                copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
-                copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                copyBtn.BorderSizePixel = 0
-                copyBtn.AutoButtonColor = false
-                copyBtn.Parent = header
-                
-                local copyCorner = Instance.new("UICorner")
-                copyCorner.CornerRadius = UDim.new(0, 4)
-                copyCorner.Parent = copyBtn
-                
-                copyBtn.MouseButton1Click:Connect(function()
-                    setclipboard(cleanText)
-                    copyBtn.Text = "Copied"
-                    task.wait(1.5)
-                    copyBtn.Text = "Copy"
-                end)
-                
-                local content = Instance.new("TextLabel")
-                content.Name = "ContentLabel"
-                content.Size = UDim2.new(1, 0, 0, 0)
-                content.Position = UDim2.new(0, 0, 0, 25)
-                content.Text = cleanText
-                content.TextColor3 = Color3.fromRGB(240, 240, 245)
-                content.BackgroundTransparency = 1
-                content.TextXAlignment = Enum.TextXAlignment.Left
-                content.TextYAlignment = Enum.TextYAlignment.Top
-                content.TextWrapped = true
-                content.Font = Enum.Font.Code
-                content.TextSize = isMobile and 11 or 12
-                content.AutomaticSize = Enum.AutomaticSize.Y
-                content.Parent = logFrame
-                
-                task.wait()
-                logsFrame.CanvasPosition = Vector2.new(0, logsFrame.AbsoluteCanvasSize.Y)
-            end)
-        end)
-    end
-    
-    return addLog
-end
-
--- Main Logic
-createSelectionUI()
-
-repeat task.wait() until outputMode
-
-local addLog
-if outputMode == "ui" then
-    addLog = createMainUI()
-end
-
-local function logRequest(text, isResponse)
-    if config.SaveLogs then
-        pcall(function()
-            appendfile(logFile, text:gsub("\027%[[%d;]+m", ""))
-        end)
-    end
-    
-    if outputMode == "console" then
-        logToConsole(text, isResponse)
-    elseif outputMode == "ui" and addLog then
-        addLog(text, isResponse)
-    end
-end
-
--- Hook Functions
-local origRequest = (syn or http).request
-local reqType = syn and "syn" or "http"
-
-local hookedRequest = function(options)
-    if type(options) ~= "table" or not isEnabled then
-        return origRequest(options)
-    end
-    
-    local url = options.Url
-    if not url or config.BlockedURLs[url] then
-        return origRequest(options)
-    end
-    
-    logRequest(string.format("%s.request(%s)\n\n", reqType, serializer.Serialize(options)), false)
-    
-    if not config.ShowResponse then
-        return origRequest(options)
-    end
-    
-    local success, response = pcall(origRequest, options)
-    
-    if success then
-        local respData = {}
-        for k, v in pairs(response) do
-            respData[k] = v
-        end
-        
-        if respData.Headers and respData.Headers["Content-Type"] and 
-           respData.Headers["Content-Type"]:match("application/json") and config.AutoDecode then
-            local decSuccess, decoded = pcall(game.HttpService.JSONDecode, game.HttpService, respData.Body)
-            if decSuccess then
-                respData.Body = decoded
-            end
-        end
-        
-        logRequest(string.format("Response: %s\n\n", serializer.Serialize(respData)), true)
-    end
-    
-    return response
-end
-
-hookfunction(origRequest, hookedRequest)
-
--- Initial message
-task.spawn(function()
-    local initMsg = string.format(
-        "HttpSpy %s - Enhanced Edition\nOutput Mode: %s\nLogs: %s\n\n",
-        version,
-        outputMode == "ui" and "Custom UI" or "Console",
-        config.SaveLogs and logFile or "Disabled"
-    )
-    logRequest(initMsg, false)
-end)
-
-print("HttpSpy Enhanced loaded - Output mode: " .. outputMode)
+	x = (loadstring(game:HttpGet("https://raw.githubusercontent.com/NotDSF/leopard/main/rbx/leopard-syn.lua")))();
+	x.UpdateConfig({ highlighting = L.Highlighting });
+end);
+if not x then
+	warn("Failed to load Serializer - some features may not work properly");
+	x = { Serialize = function(R)
+				return tostring(R);
+			end, FormatArguments = function(...)
+				return table.concat({ ... }, ", ");
+			end };
+end;
+local a = "Anti-Detection Build";
+pcall(function()
+	a = (game.HttpService:JSONDecode(game:HttpGet("https://api.github.com/repos/NotDSF/HttpSpy/commits?per_page=1&path=init.lua")))[1].commit.message;
+end);
+local V, p = pcall(function()
+		local V = clonefunction;
+		local p = V(string.format);
+		local n = V(string.gsub);
+		local h = V(string.match);
+		local Y = V(appendfile);
+		local X = V(type);
+		local q = V(coroutine.running);
+		local f = V(coroutine.wrap);
+		local o = V(coroutine.resume);
+		local N = V(coroutine.yield);
+		local B = V(pcall);
+		local W = V(pairs);
+		local P = V(error);
+		local I = V(getnamecallmethod);
+		local k = L.BlockedURLs;
+		local m = true;
+		local g = (syn or http).request;
+		local z = syn and "syn" or "http";
+		local T = {};
+		local i = {};
+		local v = {
+				HttpGet = not syn,
+				HttpGetAsync = not syn,
+				GetObjects = true,
+				HttpPost = not syn,
+				HttpPostAsync = not syn,
+			};
+		local E = Instance.new("BindableEvent");
+		local S = Instance.new("ScreenGui");
+		S.Name = c.ScreenGui;
+		S.DisplayOrder = 999;
+		S.ResetOnSpawn = false;
+		S.IgnoreGuiInset = true;
+		S.Parent = game:GetService("CoreGui");
+		local w = Instance.new("Frame");
+		w.Name = c.MainFrame;
+		w.Size = UDim2.new(0, 300, 0, 300);
+		w.Position = UDim2.new(.5, -325, .5, -225);
+		w.BackgroundColor3 = Color3.fromRGB(20, 20, 25);
+		w.BorderColor3 = Color3.fromRGB(55, 55, 65);
+		w.BorderSizePixel = 2;
+		w.ClipsDescendants = true;
+		w.Parent = S;
+		local C = Instance.new("UICorner");
+		C.CornerRadius = UDim.new(0, 8);
+		C.Parent = w;
+		local H, D, Z, b = nil, nil, nil, false;
+		w.InputBegan:Connect(function(R)
+			if R.UserInputType == Enum.UserInputType.MouseButton1 then
+				b = true;
+				D = R.Position;
+				Z = w.Position;
+				R.Changed:Connect(function()
+					if R.UserInputState == Enum.UserInputState.End then
+						b = false;
+					end;
+				end);
+			end;
+		end);
+		w.InputChanged:Connect(function(R)
+			if R.UserInputType == Enum.UserInputType.MouseMovement then
+				H = R;
+			end;
+		end);
+		(game:GetService("UserInputService")).InputChanged:Connect(function(R)
+			if R == H and b then
+				local L = R.Position - D;
+				w.Position = UDim2.new(Z.X.Scale, Z.X.Offset + L.X, Z.Y.Scale, Z.Y.Offset + L.Y);
+			end;
+		end);
+		local r = Instance.new("Frame");
+		r.Name = c.TitleBar;
+		r.Size = UDim2.new(1, 0, 0, 35);
+		r.BackgroundColor3 = Color3.fromRGB(30, 30, 38);
+		r.BorderSizePixel = 0;
+		r.Parent = w;
+		local A = Instance.new("UICorner");
+		A.CornerRadius = UDim.new(0, 8);
+		A.Parent = r;
+		local U = Instance.new("Frame");
+		U.Size = UDim2.new(1, 0, 0, 10);
+		U.Position = UDim2.new(0, 0, 1, -10);
+		U.BackgroundColor3 = Color3.fromRGB(30, 30, 38);
+		U.BorderSizePixel = 0;
+		U.Parent = r;
+		local G = Instance.new("TextLabel");
+		G.Size = UDim2.new(1, -200, 1, 0);
+		G.Position = UDim2.new(0, 15, 0, 0);
+		G.BackgroundTransparency = 1;
+		G.Text = "\240\159\148\141 HttpSpy " .. Q;
+		G.TextColor3 = Color3.fromRGB(255, 255, 255);
+		G.Font = Enum.Font.GothamBold;
+		G.TextSize = 15;
+		G.TextXAlignment = Enum.TextXAlignment.Left;
+		G.Parent = r;
+		local y = Instance.new("Frame");
+		y.Size = UDim2.new(0, 210, 1, 0);
+		y.Position = UDim2.new(1, -215, 0, 0);
+		y.BackgroundTransparency = 1;
+		y.Parent = r;
+		local s = Instance.new("TextButton");
+		s.Size = UDim2.new(0, 70, 0, 24);
+		s.Position = UDim2.new(0, 0, .5, -12);
+		s.Text = "\240\159\159\162 ON";
+		s.Font = Enum.Font.GothamBold;
+		s.TextSize = 12;
+		s.BackgroundColor3 = Color3.fromRGB(40, 140, 60);
+		s.TextColor3 = Color3.fromRGB(255, 255, 255);
+		s.BorderSizePixel = 0;
+		s.AutoButtonColor = false;
+		s.Parent = y;
+		local t = Instance.new("UICorner");
+		t.CornerRadius = UDim.new(0, 6);
+		t.Parent = s;
+		local M = Instance.new("TextButton");
+		M.Size = UDim2.new(0, 30, 0, 24);
+		M.Position = UDim2.new(0, 75, .5, -12);
+		M.Text = "\226\148\129";
+		M.Font = Enum.Font.GothamBold;
+		M.TextSize = 14;
+		M.BackgroundColor3 = Color3.fromRGB(60, 60, 70);
+		M.TextColor3 = Color3.fromRGB(255, 255, 255);
+		M.BorderSizePixel = 0;
+		M.AutoButtonColor = false;
+		M.Parent = y;
+		local d = Instance.new("UICorner");
+		d.CornerRadius = UDim.new(0, 6);
+		d.Parent = M;
+		local K = Instance.new("TextButton");
+		K.Size = UDim2.new(0, 30, 0, 24);
+		K.Position = UDim2.new(0, 110, .5, -12);
+		K.Text = "\226\150\161";
+		K.Font = Enum.Font.GothamBold;
+		K.TextSize = 14;
+		K.BackgroundColor3 = Color3.fromRGB(60, 60, 70);
+		K.TextColor3 = Color3.fromRGB(255, 255, 255);
+		K.BorderSizePixel = 0;
+		K.AutoButtonColor = false;
+		K.Parent = y;
+		local F = Instance.new("UICorner");
+		F.CornerRadius = UDim.new(0, 6);
+		F.Parent = K;
+		local l = Instance.new("TextButton");
+		l.Size = UDim2.new(0, 30, 0, 24);
+		l.Position = UDim2.new(0, 145, .5, -12);
+		l.Text = "\226\156\149";
+		l.Font = Enum.Font.GothamBold;
+		l.TextSize = 14;
+		l.BackgroundColor3 = Color3.fromRGB(180, 50, 50);
+		l.TextColor3 = Color3.fromRGB(255, 255, 255);
+		l.BorderSizePixel = 0;
+		l.AutoButtonColor = false;
+		l.Parent = y;
+		local e = Instance.new("UICorner");
+		e.CornerRadius = UDim.new(0, 6);
+		e.Parent = l;
+		local O = Instance.new("TextButton");
+		O.Name = c.MinimizedIcon;
+		O.Size = UDim2.new(0, 45, 0, 45);
+		O.Position = UDim2.new(.5, -22, 0, 15);
+		O.Text = "\240\159\148\141";
+		O.Font = Enum.Font.GothamBold;
+		O.TextSize = 22;
+		O.BackgroundColor3 = Color3.fromRGB(30, 30, 38);
+		O.TextColor3 = Color3.fromRGB(255, 255, 255);
+		O.BorderSizePixel = 2;
+		O.BorderColor3 = Color3.fromRGB(55, 55, 65);
+		O.AutoButtonColor = false;
+		O.Visible = false;
+		O.ZIndex = 1000;
+		O.Parent = S;
+		local u = Instance.new("UICorner");
+		u.CornerRadius = UDim.new(0, 8);
+		u.Parent = O;
+		local j = Instance.new("ScrollingFrame");
+		j.Name = c.LogsFrame;
+		j.Size = UDim2.new(1, -20, 1, -110);
+		j.Position = UDim2.new(0, 10, 0, 45);
+		j.BackgroundColor3 = Color3.fromRGB(15, 15, 20);
+		j.BorderSizePixel = 0;
+		j.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90);
+		j.ScrollBarThickness = 8;
+		j.AutomaticCanvasSize = Enum.AutomaticSize.Y;
+		j.ScrollingDirection = Enum.ScrollingDirection.Y;
+		j.CanvasSize = UDim2.new(0, 0, 0, 0);
+		j.Parent = w;
+		local RS = Instance.new("UICorner");
+		RS.CornerRadius = UDim.new(0, 6);
+		RS.Parent = j;
+		local LS = Instance.new("UIListLayout");
+		LS.Padding = UDim.new(0, 10);
+		LS.SortOrder = Enum.SortOrder.LayoutOrder;
+		LS.Parent = j;
+		local QS = Instance.new("UIPadding");
+		QS.PaddingLeft = UDim.new(0, 10);
+		QS.PaddingRight = UDim.new(0, 10);
+		QS.PaddingTop = UDim.new(0, 10);
+		QS.PaddingBottom = UDim.new(0, 10);
+		QS.Parent = j;
+		local JS = Instance.new("Frame");
+		JS.Size = UDim2.new(1, -20, 0, 50);
+		JS.Position = UDim2.new(0, 10, 1, -60);
+		JS.BackgroundColor3 = Color3.fromRGB(25, 25, 32);
+		JS.BorderSizePixel = 0;
+		JS.Parent = w;
+		local cS = Instance.new("UICorner");
+		cS.CornerRadius = UDim.new(0, 6);
+		cS.Parent = JS;
+		local xS = Instance.new("TextButton");
+		xS.Size = UDim2.new(0, 90, 0, 30);
+		xS.Position = UDim2.new(0, 10, .5, -15);
+		xS.Text = "\240\159\151\145\239\184\143 Clear";
+		xS.Font = Enum.Font.GothamBold;
+		xS.TextSize = 13;
+		xS.BackgroundColor3 = Color3.fromRGB(50, 50, 60);
+		xS.TextColor3 = Color3.fromRGB(255, 255, 255);
+		xS.BorderSizePixel = 0;
+		xS.AutoButtonColor = false;
+		xS.Parent = JS;
+		local aS = Instance.new("UICorner");
+		aS.CornerRadius = UDim.new(0, 6);
+		aS.Parent = xS;
+		local VS = Instance.new("TextBox");
+		VS.Size = UDim2.new(0, 250, 0, 30);
+		VS.Position = UDim2.new(0, 110, .5, -15);
+		VS.PlaceholderText = "\240\159\148\142 Filter requests...";
+		VS.Text = "";
+		VS.Font = Enum.Font.Gotham;
+		VS.TextSize = 12;
+		VS.BackgroundColor3 = Color3.fromRGB(35, 35, 45);
+		VS.TextColor3 = Color3.fromRGB(255, 255, 255);
+		VS.PlaceholderColor3 = Color3.fromRGB(150, 150, 160);
+		VS.BorderSizePixel = 0;
+		VS.TextXAlignment = Enum.TextXAlignment.Left;
+		VS.Parent = JS;
+		local pS = Instance.new("UICorner");
+		pS.CornerRadius = UDim.new(0, 6);
+		pS.Parent = VS;
+		local nS = Instance.new("UIPadding");
+		nS.PaddingLeft = UDim.new(0, 10);
+		nS.Parent = VS;
+		local hS = Instance.new("TextLabel");
+		hS.Size = UDim2.new(0, 150, 1, 0);
+		hS.Position = UDim2.new(1, -160, 0, 0);
+		hS.Text = "\240\159\147\138 Requests: 0";
+		hS.Font = Enum.Font.GothamBold;
+		hS.TextSize = 13;
+		hS.BackgroundTransparency = 1;
+		hS.TextColor3 = Color3.fromRGB(100, 200, 255);
+		hS.TextXAlignment = Enum.TextXAlignment.Right;
+		hS.Parent = JS;
+		local YS = 0;
+		local function XS(R, L, Q)
+			R.MouseEnter:Connect(function()
+				R.BackgroundColor3 = L;
+			end);
+			R.MouseLeave:Connect(function()
+				R.BackgroundColor3 = Q;
+			end);
+		end;
+		XS(s, Color3.fromRGB(50, 160, 80), Color3.fromRGB(40, 140, 60));
+		XS(M, Color3.fromRGB(80, 80, 90), Color3.fromRGB(60, 60, 70));
+		XS(K, Color3.fromRGB(80, 80, 90), Color3.fromRGB(60, 60, 70));
+		XS(l, Color3.fromRGB(220, 70, 70), Color3.fromRGB(180, 50, 50));
+		XS(xS, Color3.fromRGB(70, 70, 80), Color3.fromRGB(50, 50, 60));
+		XS(O, Color3.fromRGB(45, 45, 55), Color3.fromRGB(30, 30, 38));
+		s.MouseButton1Click:Connect(function()
+			m = not m;
+			s.Text = m and "\240\159\159\162 ON" or "\240\159\148\180 OFF";
+			s.BackgroundColor3 = m and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(140, 40, 40);
+		end);
+		local qS = false;
+		M.MouseButton1Click:Connect(function()
+			qS = true;
+			w.Visible = false;
+			O.Visible = true;
+		end);
+		O.MouseButton1Click:Connect(function()
+			qS = false;
+			w.Visible = true;
+			O.Visible = false;
+		end);
+		local fS = false;
+		local oS = w.Size;
+		local NS = w.Position;
+		K.MouseButton1Click:Connect(function()
+			fS = not fS;
+			if fS then
+				w.Size = UDim2.new(.95, 0, .95, 0);
+				w.Position = UDim2.new(.025, 0, .025, 0);
+				K.Text = "\226\157\144";
+			else
+				w.Size = oS;
+				w.Position = NS;
+				K.Text = "\226\150\161";
+			end;
+		end);
+		l.MouseButton1Click:Connect(function()
+			if __namecall then
+				hookmetamethod(game, "__namecall", __namecall);
+			end;
+			if __request then
+				hookfunction(g, __request);
+			end;
+			S:Destroy();
+			(getgenv()).HttpSpy = nil;
+		end);
+		xS.MouseButton1Click:Connect(function()
+			for R, L in ipairs(j:GetChildren()) do
+				if L:IsA("Frame") then
+					L:Destroy();
+				end;
+			end;
+			YS = 0;
+			hS.Text = "\240\159\147\138 Requests: 0";
+		end);
+		(VS:GetPropertyChangedSignal("Text")):Connect(function()
+			local R = string.lower(VS.Text);
+			for L, Q in ipairs(j:GetChildren()) do
+				if Q:IsA("Frame") then
+					local L = Q:FindFirstChild("ContentLabel");
+					if L and L.Text then
+						Q.Visible = R == "" or string.find(string.lower(L.Text), R, 1, true) ~= nil;
+					end;
+				end;
+			end;
+		end);
+		local function BS(Q, c)
+			if L.SaveLogs then
+				pcall(function()
+					Y(J, n(Q, "%\027%[%d+m", ""));
+				end);
+			end;
+			if not L.GuiEnabled then
+				return;
+			end;
+			local x = Q:gsub("\027%[[%d;]+m", "");
+			task.spawn(function()
+				pcall(function()
+					YS = YS + 1;
+					hS.Text = "\240\159\147\138 Requests: " .. YS;
+					local L = Instance.new("Frame");
+					L.Name = R();
+					L.Size = UDim2.new(1, -10, 0, 0);
+					L.BackgroundColor3 = c and Color3.fromRGB(25, 40, 25) or Color3.fromRGB(35, 25, 40);
+					L.BorderSizePixel = 0;
+					L.AutomaticSize = Enum.AutomaticSize.Y;
+					L.LayoutOrder = YS;
+					L.Parent = j;
+					local Q = Instance.new("UICorner");
+					Q.CornerRadius = UDim.new(0, 6);
+					Q.Parent = L;
+					local J = Instance.new("UIPadding");
+					J.PaddingLeft = UDim.new(0, 12);
+					J.PaddingRight = UDim.new(0, 12);
+					J.PaddingTop = UDim.new(0, 10);
+					J.PaddingBottom = UDim.new(0, 10);
+					J.Parent = L;
+					local a = Instance.new("Frame");
+					a.Size = UDim2.new(1, 0, 0, 20);
+					a.BackgroundTransparency = 1;
+					a.Parent = L;
+					local V = Instance.new("TextLabel");
+					V.Size = UDim2.new(0, 100, 1, 0);
+					V.BackgroundTransparency = 1;
+					V.Text = c and "\240\159\147\165 Response" or "\240\159\147\164 Request";
+					V.TextColor3 = c and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 150, 100);
+					V.Font = Enum.Font.GothamBold;
+					V.TextSize = 12;
+					V.TextXAlignment = Enum.TextXAlignment.Left;
+					V.Parent = a;
+					local p = Instance.new("TextLabel");
+					p.Size = UDim2.new(0, 80, 1, 0);
+					p.Position = UDim2.new(0, 110, 0, 0);
+					p.BackgroundTransparency = 1;
+					p.Text = "\226\143\176 " .. os.date("%H:%M:%S");
+					p.TextColor3 = Color3.fromRGB(150, 150, 160);
+					p.Font = Enum.Font.Gotham;
+					p.TextSize = 11;
+					p.TextXAlignment = Enum.TextXAlignment.Left;
+					p.Parent = a;
+					local n = Instance.new("TextButton");
+					n.Size = UDim2.new(0, 60, 0, 20);
+					n.Position = UDim2.new(1, -60, 0, 0);
+					n.Text = "\240\159\147\139 Copy";
+					n.Font = Enum.Font.GothamBold;
+					n.TextSize = 11;
+					n.BackgroundColor3 = Color3.fromRGB(60, 80, 120);
+					n.TextColor3 = Color3.fromRGB(255, 255, 255);
+					n.BorderSizePixel = 0;
+					n.AutoButtonColor = false;
+					n.Parent = a;
+					local h = Instance.new("UICorner");
+					h.CornerRadius = UDim.new(0, 4);
+					h.Parent = n;
+					XS(n, Color3.fromRGB(80, 100, 140), Color3.fromRGB(60, 80, 120));
+					n.MouseButton1Click:Connect(function()
+						setclipboard(x);
+						n.Text = "\226\156\147 Copied";
+						task.wait(1.5);
+						n.Text = "\240\159\147\139 Copy";
+					end);
+					local Y = Instance.new("TextLabel");
+					Y.Name = "ContentLabel";
+					Y.Size = UDim2.new(1, 0, 0, 0);
+					Y.Position = UDim2.new(0, 0, 0, 25);
+					Y.Text = x;
+					Y.TextColor3 = Color3.fromRGB(240, 240, 245);
+					Y.BackgroundTransparency = 1;
+					Y.TextXAlignment = Enum.TextXAlignment.Left;
+					Y.TextYAlignment = Enum.TextYAlignment.Top;
+					Y.TextWrapped = true;
+					Y.Font = Enum.Font.Code;
+					Y.TextSize = 13;
+					Y.AutomaticSize = Enum.AutomaticSize.Y;
+					Y.Parent = L;
+					if VS.Text == "" then
+						task.wait();
+						j.CanvasPosition = Vector2.new(0, j.AbsoluteCanvasSize.Y);
+					end;
+				end);
+			end);
+		end;
+		local function WS(R)
+			for L, Q in W(getgc(true)) do
+				if type(Q) == "function" and (islclosure(Q) and ((getfenv(Q)).script == (getfenv(saveinstance)).script and table.find(debug.getconstants(Q), R))) then
+					return Q;
+				end;
+			end;
+		end;
+		local function PS(R, L)
+			L = L or {};
+			for R, Q in W(R) do
+				if X(Q) == "table" then
+					L[R] = PS(Q);
+					continue;
+				end;
+				L[R] = Q;
+			end;
+			return L;
+		end;
+		local IS, kS;
+		IS = hookmetamethod(game, "__namecall", newcclosure(function(R, ...)
+				local L = I();
+				if v[L] then
+					BS("game:" .. (L .. ("(" .. (x.FormatArguments(...) .. ")\n\n"))));
+				end;
+				return IS(R, ...);
+			end));
+		kS = hookfunction(g, newcclosure(function(R)
+				if X(R) ~= "table" then
+					return kS(R);
+				end;
+				local Q = PS(R);
+				if not m then
+					return kS(R);
+				end;
+				if X(Q.Url) ~= "string" then
+					return kS(R);
+				end;
+				if not L.ShowResponse then
+					BS(z .. (".request(" .. (x.Serialize(Q) .. ")\n\n")));
+					return kS(R);
+				end;
+				local J = q();
+				(f(function()
+					if Q.Url and k[Q.Url] then
+						BS(z .. (".request(" .. (x.Serialize(Q) .. ") -- blocked url\n\n")));
+						return o(J, {});
+					end;
+					if Q.Url then
+						local R = string.match(Q.Url, "https?://(%w+.%w+)/");
+						if R and i[R] then
+							Q.Url = n(Q.Url, R, i[R], 1);
+						end;
+					end;
+					E:Fire(Q);
+					local R, c = B(kS, Q);
+					if not R then
+						P(c, 0);
+					end;
+					local a = {};
+					for R, L in W(c) do
+						a[R] = L;
+					end;
+					if a.Headers["Content-Type"] and (h(a.Headers["Content-Type"], "application/json") and L.AutoDecode) then
+						local R = a.Body;
+						local L, Q = B(game.HttpService.JSONDecode, game.HttpService, R);
+						if L then
+							a.Body = Q;
+						end;
+					end;
+					BS(z .. (".request(" .. (x.Serialize(Q) .. ")\n\n")), false);
+					BS("Response Data: " .. (x.Serialize(a) .. "\n\n"), true);
+					o(J, T[Q.Url] and T[Q.Url](c) or c);
+				end))();
+				return N();
+			end));
+		if request then
+			replaceclosure(request, g);
+		end;
+		if syn and syn.websocket then
+			local R, L = debug.getupvalue(syn.websocket.connect, 1);
+			L = hookfunction(R, function(...)
+					BS("syn.websocket.connect(" .. (x.FormatArguments(...) .. ")\n\n"));
+					return L(...);
+				end);
+		end;
+		if syn and syn.websocket then
+			local R;
+			R = hookfunction(getupvalue(WS("ZeZLm2hpvGJrD6OP8A3aEszPNEw8OxGb"), 2), function(L, ...)
+					BS("game.HttpGet(game, " .. (x.FormatArguments(...) .. ")\n\n"));
+					return R(L, ...);
+				end);
+			local L;
+			L = hookfunction(getupvalue(WS("gpGXBVpEoOOktZWoYECgAY31o0BlhOue"), 2), function(R, ...)
+					BS("game.HttpPost(game, " .. (x.FormatArguments(...) .. ")\n\n"));
+					return L(R, ...);
+				end);
+		end;
+		for R, L in W(v) do
+			if L then
+				local L;
+				L = hookfunction(game[R], newcclosure(function(Q, ...)
+						BS("game." .. (R .. ("(game, " .. (x.FormatArguments(...) .. ")\n\n"))));
+						return L(Q, ...);
+					end));
+			end;
+		end;
+		if not debug.info(2, "f") then
+			BS("You are running an outdated version, please use the loadstring at https://github.com/NotDSF/HttpSpy\n");
+		end;
+		task.spawn(function()
+			BS("HttpSpy " .. (Q .. (" - Anti-Detection Build\n\226\156\147 GUI Names Randomized\n\226\156\147 Stealth Mode Active\nChange Logs:\n\t" .. (a .. ("\nLogs saved to: " .. ((L.SaveLogs and J or "(Disabled)") .. "\n\n"))))));
+		end);
+		if not L.API then
+			return;
+		end;
+		local mS = {};
+		mS.OnRequest = E.Event;
+		function mS.HookSynRequest(R, L, Q)
+			T[L] = Q;
+		end;
+		function mS.ProxyHost(R, L, Q)
+			i[L] = Q;
+		end;
+		function mS.RemoveProxy(R, L)
+			if not i[L] then
+				error("host isn\'t proxied", 0);
+			end;
+			i[L] = nil;
+		end;
+		function mS.UnHookSynRequest(R, L)
+			if not T[L] then
+				error("url isn\'t hooked", 0);
+			end;
+			T[L] = nil;
+		end;
+		function mS.BlockUrl(R, L)
+			k[L] = true;
+		end;
+		function mS.WhitelistUrl(R, L)
+			k[L] = false;
+		end;
+		function mS.ToggleGui(R, Q)
+			S.Enabled = Q;
+			L.GuiEnabled = Q;
+		end;
+		function mS.SetGuiPosition(R, L)
+			w.Position = L;
+		end;
+		function mS.SetGuiSize(R, L)
+			w.Size = L;
+		end;
+		function mS.GetGuiNames(R)
+			return c;
+		end;
+		return mS;
+	end);
+if not V and p then
+	warn("HttpSpy initialization failed: " .. tostring(p));
+	if rconsoleprint then
+		rconsoleprint("@@RED@@");
+		rconsoleprint("HttpSpy initialization error: " .. (tostring(p) .. "\n"));
+	end;
+	return nil;
+end;
