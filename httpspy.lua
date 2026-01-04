@@ -1,4 +1,4 @@
-\--// HttpSpy Enhanced v2.1 - Multi-Output Support
+--// HttpSpy Enhanced v2.1 - Multi-Output Support
 assert(syn or http, "Unsupported exploit (should support syn.request or http.request)")
 
 local function R()
@@ -288,11 +288,11 @@ local function createMainUI()
     
     local function createTitleButton(text, pos, color, callback)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, isMobile and 38 : 40, 0, isMobile and 26 : 28)
+        btn.Size = UDim2.new(0, isMobile and 38 or 40, 0, isMobile and 26 or 28)
         btn.Position = pos
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = isMobile and 11 : 12
+        btn.TextSize = isMobile and 11 or 12
         btn.BackgroundColor3 = color
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.BorderSizePixel = 0
@@ -335,7 +335,7 @@ local function createMainUI()
     
     createTitleButton(
         "[-]",
-        UDim2.new(0, isMobile and 43 : 45, 0.5, -14),
+        UDim2.new(0, isMobile and 43 or 45, 0.5, -14),
         Color3.fromRGB(60, 60, 70),
         function()
             mainFrame.Visible = false
@@ -367,7 +367,7 @@ local function createMainUI()
     
     createTitleButton(
         "[+]",
-        UDim2.new(0, isMobile and 86 : 90, 0.5, -14),
+        UDim2.new(0, isMobile and 86 or 90, 0.5, -14),
         Color3.fromRGB(60, 60, 70),
         function()
             if mainFrame.Size == UDim2.new(0, frameWidth, 0, frameHeight) then
@@ -382,7 +382,7 @@ local function createMainUI()
     
     createTitleButton(
         "X",
-        UDim2.new(0, isMobile and 129 : 135, 0.5, -14),
+        UDim2.new(0, isMobile and 129 or 135, 0.5, -14),
         Color3.fromRGB(180, 50, 50),
         function()
             sg:Destroy()
@@ -432,11 +432,11 @@ local function createMainUI()
     bottomCorner.Parent = bottomBar
     
     local clearBtn = Instance.new("TextButton")
-    clearBtn.Size = UDim2.new(0, isMobile and 75 : 85, 0, 35)
+    clearBtn.Size = UDim2.new(0, isMobile and 75 or 85, 0, 35)
     clearBtn.Position = UDim2.new(0, 10, 0.5, -17.5)
     clearBtn.Text = "Clear"
     clearBtn.Font = Enum.Font.GothamBold
-    clearBtn.TextSize = isMobile and 12 : 13
+    clearBtn.TextSize = isMobile and 12 or 13
     clearBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     clearBtn.BorderSizePixel = 0
@@ -461,7 +461,7 @@ local function createMainUI()
     countLabel.Position = UDim2.new(1, -160, 0, 0)
     countLabel.Text = "Requests: 0"
     countLabel.Font = Enum.Font.GothamBold
-    countLabel.TextSize = isMobile and 12 : 13
+    countLabel.TextSize = isMobile and 12 or 13
     countLabel.BackgroundTransparency = 1
     countLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
     countLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -506,7 +506,7 @@ local function createMainUI()
                 typeLabel.Text = isResponse and "Response" or "Request"
                 typeLabel.TextColor3 = isResponse and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 150, 100)
                 typeLabel.Font = Enum.Font.GothamBold
-                typeLabel.TextSize = isMobile and 11 : 12
+                typeLabel.TextSize = isMobile and 11 or 12
                 typeLabel.TextXAlignment = Enum.TextXAlignment.Left
                 typeLabel.Parent = header
                 
@@ -517,16 +517,16 @@ local function createMainUI()
                 timeLabel.Text = os.date("%H:%M:%S")
                 timeLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
                 timeLabel.Font = Enum.Font.Gotham
-                timeLabel.TextSize = isMobile and 10 : 11
+                timeLabel.TextSize = isMobile and 10 or 11
                 timeLabel.TextXAlignment = Enum.TextXAlignment.Left
                 timeLabel.Parent = header
                 
                 local copyBtn = Instance.new("TextButton")
-                copyBtn.Size = UDim2.new(0, isMobile and 50 : 55, 0, 20)
-                copyBtn.Position = UDim2.new(1, -(isMobile and 50 : 55), 0, 0)
+                copyBtn.Size = UDim2.new(0, isMobile and 50 or 55, 0, 20)
+                copyBtn.Position = UDim2.new(1, -(isMobile and 50 or 55), 0, 0)
                 copyBtn.Text = "Copy"
                 copyBtn.Font = Enum.Font.GothamBold
-                copyBtn.TextSize = isMobile and 10 : 11
+                copyBtn.TextSize = isMobile and 10 or 11
                 copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
                 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 copyBtn.BorderSizePixel = 0
@@ -555,7 +555,7 @@ local function createMainUI()
                 content.TextYAlignment = Enum.TextYAlignment.Top
                 content.TextWrapped = true
                 content.Font = Enum.Font.Code
-                content.TextSize = isMobile and 11 : 12
+                content.TextSize = isMobile and 11 or 12
                 content.AutomaticSize = Enum.AutomaticSize.Y
                 content.Parent = logFrame
                 
